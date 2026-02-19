@@ -1,17 +1,19 @@
-import { Home, Compass, Layers, Users, Calendar } from 'lucide-react';
+import { Home, Compass, Layers, Users, Calendar, Search } from 'lucide-react';
+import { Page } from '../context/AppContext';
 
 interface BottomNavProps {
-  activePage: string;
-  onNavigate: (page: string) => void;
+  activePage: Page;
+  onNavigate: (page: Page) => void;
 }
 
 export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home', color: 'red' },
-    { id: 'discover', icon: Compass, label: 'Discover', color: 'blue' },
-    { id: 'nexus', icon: Layers, label: 'Nexus', color: 'yellow' },
-    { id: 'community', icon: Users, label: 'Community', color: 'green' },
-    { id: 'events', icon: Calendar, label: 'Events', color: 'orange' },
+    { id: 'home' as Page, icon: Home, label: 'Home', color: 'red' },
+    { id: 'discover' as Page, icon: Compass, label: 'Discover', color: 'blue' },
+    { id: 'nexus' as Page, icon: Layers, label: 'Nexus', color: 'yellow' },
+    { id: 'community' as Page, icon: Users, label: 'Community', color: 'green' },
+    { id: 'events' as Page, icon: Calendar, label: 'Events', color: 'orange' },
+    { id: 'search' as Page, icon: Search, label: 'Search', color: 'purple' },
   ];
 
   const getColorClasses = (color: string, isActive: boolean) => {
@@ -45,6 +47,12 @@ export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
         border: 'border-orange-400',
         text: 'text-orange-400',
         shadow: 'shadow-orange-500/50'
+      },
+      purple: {
+        bg: 'from-purple-600 to-purple-700',
+        border: 'border-purple-400',
+        text: 'text-purple-400',
+        shadow: 'shadow-purple-500/50'
       }
     };
     return colors[color];
@@ -56,7 +64,7 @@ export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
       {/* Comic book accent line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500" />
       
-      <div className="relative h-full flex items-center justify-around max-w-2xl mx-auto px-8">
+      <div className="relative h-full flex items-center justify-around max-w-3xl mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activePage === item.id;
@@ -66,7 +74,7 @@ export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className="relative flex flex-col items-center gap-1.5 py-2 px-3 transition-all group"
+              className="relative flex flex-col items-center gap-1.5 py-2 px-2 transition-all group"
             >
               {isActive && (
                 <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r ${colorClasses.bg} rounded-full`} />

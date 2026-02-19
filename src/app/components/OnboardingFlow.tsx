@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Book, Users, Calendar, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import logoImage from 'figma:asset/7f4c2830fbeab039f2bfb2e66991fbd14cd52b08.png';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -57,7 +58,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-      <div className="relative w-full max-w-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-2xl border-4 border-yellow-400 shadow-2xl overflow-hidden">
+      {/* The Fictionverse Logo - Fixed at top */}
+      <div className="fixed top-8 left-1/2 -translate-x-1/2 z-0 pointer-events-none">
+        <img 
+          src={logoImage} 
+          alt="The Fictionverse" 
+          className="h-[200px] w-auto object-contain"
+        />
+      </div>
+
+      <div className="relative z-10 w-full max-w-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-2xl border-4 border-yellow-400 shadow-2xl overflow-hidden">
         {/* Header Accent */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500" />
         
@@ -69,7 +79,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <X className="w-6 h-6 text-white" />
         </button>
 
-        <div className="p-12 pt-16">
+        <div className="relative z-10 p-12 pt-16">
           {/* Icon */}
           <div className={`w-24 h-24 mx-auto mb-8 bg-gradient-to-br ${steps[currentStep].color} rounded-2xl flex items-center justify-center border-4 border-white/20 shadow-2xl`}>
             {steps[currentStep].icon}

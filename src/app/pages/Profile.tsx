@@ -38,7 +38,10 @@ export function Profile() {
                   <h1 className="font-black text-4xl text-white tracking-tight">{currentUser.displayName}</h1>
                   <p className="text-xl text-yellow-400 font-bold">@{currentUser.username}</p>
                 </div>
-                <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl text-white font-black border-2 border-blue-400 transition-all">
+                <button 
+                  onClick={() => setCurrentPage('settings')}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl text-white font-black border-2 border-blue-400 transition-all"
+                >
                   <Edit className="w-5 h-5" />
                   Edit Profile
                 </button>
@@ -126,7 +129,13 @@ export function Profile() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-black text-2xl text-white">Your Published Works</h2>
-          <button className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 rounded-xl text-white font-black border-2 border-green-400 transition-all">
+          <button 
+            onClick={() => {
+              setSelectedStoryId(null);
+              setCurrentPage('editor');
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 rounded-xl text-white font-black border-2 border-green-400 transition-all"
+          >
             + New Story
           </button>
         </div>
@@ -135,7 +144,13 @@ export function Profile() {
           <div className="text-center py-12 p-8 bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-600">
             <Book className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400 font-bold text-lg mb-4">No published works yet</p>
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl text-white font-black border-2 border-blue-400">
+            <button 
+              onClick={() => {
+                setSelectedStoryId(null);
+                setCurrentPage('editor');
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl text-white font-black border-2 border-blue-400"
+            >
               Create Your First Story
             </button>
           </div>
@@ -151,7 +166,13 @@ export function Profile() {
                   }}
                 />
                 <div className="absolute top-4 right-4 flex gap-2">
-                  <button className="p-2 bg-blue-600 hover:bg-blue-500 rounded-lg border-2 border-blue-400 transition-all">
+                  <button 
+                    onClick={() => {
+                      setSelectedStoryId(work.id);
+                      setCurrentPage('editor');
+                    }}
+                    className="p-2 bg-blue-600 hover:bg-blue-500 rounded-lg border-2 border-blue-400 transition-all"
+                  >
                     <Edit className="w-4 h-4 text-white" />
                   </button>
                   <button className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg border-2 border-slate-600 hover:border-slate-500 transition-all">

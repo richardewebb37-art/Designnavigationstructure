@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { authAPI, preferencesAPI } from '../utils/api';
 
-export type Page = 'home' | 'discover' | 'nexus' | 'community' | 'events' | 'story' | 'profile' | 'search';
+export type Page = 'home' | 'discover' | 'nexus' | 'community' | 'events' | 'story' | 'profile' | 'search' | 'settings' | 'editor';
 
 export interface Notification {
   id: string;
@@ -39,13 +40,17 @@ interface AppContextType {
   notifications: Notification[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
+  setCurrentUser: (user: UserProfile | null) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
   storyProgress: StoryProgress[];
   updateStoryProgress: (storyId: string, progress: number) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (auth: boolean) => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,6 +61,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [storyProgress, setStoryProgress] = useState<StoryProgress[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -104,18 +111,99 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  const [currentUser] = useState<UserProfile>({
-    id: 'user1',
-    username: 'epicwriter',
-    displayName: 'Epic Writer',
-    avatar: '✍️',
-    bio: 'Passionate storyteller crafting worlds one word at a time. Sci-fi enthusiast and comic book fanatic.',
-    joinDate: '2025-06-15',
-    worksPublished: 12,
-    totalLikes: 5420,
-    followers: 234,
-    following: 89,
-  });
+  // Check authentication on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    console.log('🔍 Checking authentication...');
+    try {
+      const session = await authAPI.getSession();
+      console.log('📝 Session:', session ? 'Found' : 'Not found');
+      
+      if (session) {
+        console.log('🔑 Session has access token:', !!session.access_token);
+        
+        // Make sure token is stored
+        if (session.access_token) {
+          localStorage.setItem('access_token', session.access_token);
+          console.log('💾 Token stored in localStorage');
+        } else {
+          console.error('❌ Session exists but no access_token!');
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          localStorage.removeItem('access_token');
+          return;
+        }
+        
+        setIsAuthenticated(true);
+        console.log('✅ User is authenticated');
+        
+        try {
+          // Load user profile with retry logic
+          console.log('👤 Fetching user profile...');
+          const { profile } = await authAPI.getProfile();
+          console.log('✅ Profile loaded:', profile);
+          setCurrentUser(profile);
+          
+          // Check if should show onboarding
+          try {
+            console.log('⚙️ Fetching preferences...');
+            const { preferences } = await preferencesAPI.get();
+            console.log('✅ Preferences loaded:', preferences);
+            if (!preferences.hasCompletedOnboarding) {
+              console.log('🎓 Showing onboarding');
+              setShowOnboarding(true);
+            } else {
+              console.log('✓ Onboarding already completed');
+            }
+          } catch (prefError) {
+            console.error('❌ Failed to load preferences:', prefError);
+            // If preferences don't exist yet, show onboarding
+            setShowOnboarding(true);
+          }
+        } catch (profileError: any) {
+          console.error('❌ Failed to load profile:', profileError);
+          console.error('Error details:', profileError);
+          
+          // If we get an auth error, force complete logout and clear everything
+          console.log('🧹 Forcing complete logout due to profile fetch failure...');
+          
+          try {
+            // Try to sign out properly
+            await authAPI.signOut();
+          } catch (signOutError) {
+            console.error('Sign out also failed:', signOutError);
+          }
+          
+          // Clear all local data
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Reset state
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          setShowOnboarding(false);
+          
+          console.log('✅ Complete logout finished, user needs to sign in again');
+        }
+      } else {
+        console.log('❌ No session found');
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        localStorage.removeItem('access_token');
+      }
+    } catch (error) {
+      console.error('❌ Auth check failed:', error);
+      console.error('Error details:', error);
+      
+      // Complete cleanup on any error
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      localStorage.removeItem('access_token');
+    }
+  };
 
   const markNotificationRead = (id: string) => {
     setNotifications(prev =>
@@ -141,25 +229,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const refreshAuth = async () => {
+    await checkAuth();
+  };
+
+  const value: AppContextType = {
+    currentPage,
+    setCurrentPage,
+    selectedStoryId,
+    setSelectedStoryId,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    currentUser,
+    setCurrentUser,
+    searchQuery,
+    setSearchQuery,
+    showOnboarding,
+    setShowOnboarding,
+    storyProgress,
+    updateStoryProgress,
+    isAuthenticated,
+    setIsAuthenticated,
+    refreshAuth,
+  };
+
   return (
-    <AppContext.Provider
-      value={{
-        currentPage,
-        setCurrentPage,
-        selectedStoryId,
-        setSelectedStoryId,
-        notifications,
-        markNotificationRead,
-        markAllNotificationsRead,
-        currentUser,
-        searchQuery,
-        setSearchQuery,
-        showOnboarding,
-        setShowOnboarding,
-        storyProgress,
-        updateStoryProgress,
-      }}
-    >
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );
@@ -167,7 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useApp() {
   const context = useContext(AppContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useApp must be used within AppProvider');
   }
   return context;

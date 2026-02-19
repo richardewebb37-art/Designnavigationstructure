@@ -1,9 +1,19 @@
 import { User, Bell } from 'lucide-react';
 import { useState } from 'react';
 import logoImage from 'figma:asset/7f4c2830fbeab039f2bfb2e66991fbd14cd52b08.png';
+import { useApp } from '../context/AppContext';
 
-export function TopBar() {
+interface TopBarProps {
+  onNotificationClick: () => void;
+  onProfileClick: () => void;
+  onLogoClick: () => void;
+  onSettingsClick: () => void;
+}
+
+export function TopBar({ onNotificationClick, onProfileClick, onLogoClick, onSettingsClick }: TopBarProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const { notifications } = useApp();
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="fixed top-0 left-0 right-0 h-20 z-50">
@@ -13,7 +23,7 @@ export function TopBar() {
       
       <div className="relative h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
-        <div className="group cursor-pointer flex items-center overflow-hidden h-20">
+        <div onClick={onLogoClick} className="group cursor-pointer flex items-center overflow-hidden h-20">
           <img
             src={logoImage}
             alt="The FictionVerse"
@@ -24,12 +34,17 @@ export function TopBar() {
         {/* Right Side Icons */}
         <div className="flex items-center gap-3">
           {/* Notification Bell */}
-          <button className="w-11 h-11 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-lg flex items-center justify-center border-2 border-yellow-400 hover:border-white transition-all transform hover:scale-105 shadow-lg hover:shadow-yellow-500/50 relative">
+          <button 
+            onClick={onNotificationClick}
+            className="w-11 h-11 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-lg flex items-center justify-center border-2 border-yellow-400 hover:border-white transition-all transform hover:scale-105 shadow-lg hover:shadow-yellow-500/50 relative"
+          >
             <Bell className="w-6 h-6 text-white" strokeWidth={2.5} />
             {/* Notification badge */}
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-slate-900 rounded-full text-[10px] font-black text-white flex items-center justify-center">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-slate-900 rounded-full text-[10px] font-black text-white flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {/* User Menu */}
@@ -47,14 +62,40 @@ export function TopBar() {
                 <div className="absolute right-0 mt-3 w-56 bg-slate-800 rounded-xl shadow-2xl border-3 border-yellow-400 overflow-hidden z-50">
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500" />
                   <div className="p-2 pt-3">
-                    <button className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-red-500 rounded-lg transition-all">
+                    <button 
+                      onClick={() => {
+                        onProfileClick();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-red-500 rounded-lg transition-all"
+                    >
                       Profile
                     </button>
-                    <button className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-blue-500 rounded-lg transition-all">
+                    <button 
+                      onClick={() => {
+                        onSettingsClick();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-blue-500 rounded-lg transition-all"
+                    >
                       Settings
                     </button>
                     <div className="h-px bg-yellow-400/30 my-2 mx-2" />
-                    <button className="w-full px-4 py-3 text-left text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all">
+                    <button 
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to sign out?')) {
+                          try {
+                            const { authAPI } = await import('../utils/api');
+                            await authAPI.signOut();
+                            window.location.reload();
+                          } catch (error) {
+                            console.error('Sign out error:', error);
+                          }
+                        }
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                    >
                       Sign Out
                     </button>
                   </div>

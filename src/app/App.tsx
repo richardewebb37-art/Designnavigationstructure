@@ -1,16 +1,68 @@
 import { useState } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
+import { NotificationPanel } from './components/NotificationPanel';
+import { OnboardingFlow } from './components/OnboardingFlow';
 import { Dashboard } from './pages/Dashboard';
 import { Discovery } from './pages/Discovery';
 import { Nexus } from './pages/Nexus';
 import { Community } from './pages/Community';
 import { Events } from './pages/Events';
+import { StoryDetail } from './pages/StoryDetail';
+import { Profile } from './pages/Profile';
+import { Search } from './pages/Search';
+import { Settings } from './pages/Settings';
+import { StoryEditor } from './pages/StoryEditor';
+import { Auth } from './pages/Auth';
+import { preferencesAPI } from './utils/api';
 
-type Page = 'home' | 'discover' | 'nexus' | 'community' | 'events';
+function AppContent() {
+  const { 
+    currentPage, 
+    setCurrentPage, 
+    showOnboarding, 
+    setShowOnboarding,
+    isAuthenticated,
+    currentUser,
+    refreshAuth,
+  } = useApp();
+  const [showNotifications, setShowNotifications] = useState(false);
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    
+    // Save onboarding completion to backend
+    if (isAuthenticated) {
+      try {
+        await preferencesAPI.update({ hasCompletedOnboarding: true });
+      } catch (error) {
+        console.error('Failed to save onboarding status:', error);
+      }
+    }
+  };
+
+  const handleAuthSuccess = async () => {
+    // Refresh auth state without reloading
+    await refreshAuth();
+  };
+
+  // Show auth screen if not authenticated
+  if (!isAuthenticated) {
+    return <Auth onSuccess={handleAuthSuccess} />;
+  }
+
+  // Show loading if user data not loaded yet
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white font-bold text-xl">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -24,6 +76,16 @@ export default function App() {
         return <Community />;
       case 'events':
         return <Events />;
+      case 'story':
+        return <StoryDetail />;
+      case 'profile':
+        return <Profile />;
+      case 'search':
+        return <Search />;
+      case 'settings':
+        return <Settings />;
+      case 'editor':
+        return <StoryEditor />;
       default:
         return <Dashboard />;
     }
@@ -54,13 +116,38 @@ export default function App() {
            }}
       />
       
-      <TopBar />
+      <TopBar 
+        onNotificationClick={() => setShowNotifications(true)}
+        onProfileClick={() => setCurrentPage('profile')}
+        onLogoClick={() => setCurrentPage('home')}
+        onSettingsClick={() => setCurrentPage('settings')}
+      />
       
       <main className="relative pt-24 pb-28 px-6 max-w-7xl mx-auto">
         {renderPage()}
       </main>
 
-      <BottomNav activePage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
+      <BottomNav 
+        activePage={currentPage} 
+        onNavigate={(page) => setCurrentPage(page)} 
+      />
+
+      <NotificationPanel 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
+
+      {showOnboarding && (
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+      )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }
