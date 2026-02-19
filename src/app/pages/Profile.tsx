@@ -7,6 +7,17 @@ import { formatDistanceToNow } from 'date-fns';
 export function Profile() {
   const { currentUser, setCurrentPage, setSelectedStoryId } = useApp();
   
+  // Guard against null currentUser
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-slate-400 text-lg">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Mock user's published works
   const userWorks = works.filter(w => ['2', '4', '6'].includes(w.id));
 

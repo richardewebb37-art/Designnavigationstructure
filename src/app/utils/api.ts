@@ -1,11 +1,40 @@
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { createClient } from '@supabase/supabase-js';
+import { logger, LogCategory } from './logger';
 
 const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-30e38e62`;
 
-// Initialize Supabase client
-const supabaseUrl = `https://${projectId}.supabase.co`;
-export const supabase = createClient(supabaseUrl, publicAnonKey);
+// Lazy initialization - only create Supabase client when actually needed (not in guest mode)
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseClient() {
+  // Never initialize in guest mode
+  if (isGuestMode()) {
+    logger.debug(LogCategory.API, 'Supabase client not initialized - guest mode active');
+    return null;
+  }
+  
+  if (!supabaseClient) {
+    const supabaseUrl = `https://${projectId}.supabase.co`;
+    supabaseClient = createClient(supabaseUrl, publicAnonKey);
+    logger.info(LogCategory.API, 'Supabase client initialized');
+  }
+  
+  return supabaseClient;
+}
+
+// Export for external use, but it will return null in guest mode
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    if (!client) {
+      logger.warn(LogCategory.API, `Attempted to access supabase.${String(prop)} in guest mode`);
+      // Return a no-op function to prevent errors
+      return () => Promise.resolve({ data: null, error: new Error('Guest mode: Supabase disabled') });
+    }
+    return (client as any)[prop];
+  }
+});
 
 // Helper function to get headers
 function getHeaders(includeAuth: boolean = false) {
@@ -32,9 +61,20 @@ function getHeaders(includeAuth: boolean = false) {
   return headers;
 }
 
+// Check if we're in guest mode
+function isGuestMode(): boolean {
+  return localStorage.getItem('guest-mode') === 'true';
+}
+
 // Auth API
 export const authAPI = {
   async signUp(email: string, password: string, displayName: string, username: string) {
+    // Skip in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Sign up skipped');
+      throw new Error('Sign up is disabled in guest mode');
+    }
+    
     const response = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: getHeaders(),
@@ -50,6 +90,12 @@ export const authAPI = {
   },
 
   async signIn(email: string, password: string) {
+    // Skip in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Sign in skipped');
+      throw new Error('Sign in is disabled in guest mode');
+    }
+    
     console.log('🔐 Signing in with email:', email);
     
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -84,6 +130,12 @@ export const authAPI = {
   },
 
   async signOut() {
+    // Skip in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Sign out skipped');
+      return;
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     
@@ -91,6 +143,12 @@ export const authAPI = {
   },
 
   async getSession() {
+    // Skip in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Get session skipped');
+      return null;
+    }
+    
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
     
@@ -102,6 +160,12 @@ export const authAPI = {
   },
 
   async getProfile() {
+    // Skip in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Get profile skipped');
+      throw new Error('Profile fetch is disabled in guest mode');
+    }
+    
     console.log('🌐 Fetching profile from:', `${API_BASE}/auth/profile`);
     const headers = getHeaders(true);
     console.log('📤 Request headers:', headers);
@@ -170,6 +234,19 @@ export const authAPI = {
   },
 
   async updateProfile(updates: any) {
+    // Mock in guest mode - update local context only
+    if (isGuestMode()) {
+      console.log('Guest mode: Profile update mocked', updates);
+      // Return mock success with updated profile
+      return { 
+        profile: {
+          id: 'guest-user',
+          username: 'guest',
+          ...updates
+        }
+      };
+    }
+    
     const response = await fetch(`${API_BASE}/auth/profile`, {
       method: 'PUT',
       headers: getHeaders(true),
@@ -188,6 +265,12 @@ export const authAPI = {
 // Story API
 export const storyAPI = {
   async getAll() {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Get all stories mocked');
+      return { stories: [] };
+    }
+    
     const response = await fetch(`${API_BASE}/stories`, {
       headers: getHeaders(),
     });
@@ -201,6 +284,12 @@ export const storyAPI = {
   },
 
   async getById(id: string) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Get story by ID mocked');
+      return { story: null };
+    }
+    
     const response = await fetch(`${API_BASE}/stories/${id}`, {
       headers: getHeaders(),
     });
@@ -214,6 +303,12 @@ export const storyAPI = {
   },
 
   async getUserStories(userId: string) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Get user stories mocked');
+      return { stories: [] };
+    }
+    
     const response = await fetch(`${API_BASE}/stories/user/${userId}`, {
       headers: getHeaders(),
     });
@@ -227,6 +322,22 @@ export const storyAPI = {
   },
 
   async create(storyData: any) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Create story mocked', storyData);
+      return { 
+        story: {
+          id: `guest-story-${Date.now()}`,
+          ...storyData,
+          likes: 0,
+          views: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        message: 'Story created in guest mode (not saved to database)'
+      };
+    }
+    
     const response = await fetch(`${API_BASE}/stories`, {
       method: 'POST',
       headers: getHeaders(true),
@@ -242,6 +353,18 @@ export const storyAPI = {
   },
 
   async update(id: string, updates: any) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Update story mocked', id, updates);
+      return { 
+        story: {
+          id,
+          ...updates,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    }
+    
     const response = await fetch(`${API_BASE}/stories/${id}`, {
       method: 'PUT',
       headers: getHeaders(true),
@@ -257,6 +380,12 @@ export const storyAPI = {
   },
 
   async delete(id: string) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Delete story mocked', id);
+      return { message: 'Story deleted in guest mode (not saved to database)' };
+    }
+    
     const response = await fetch(`${API_BASE}/stories/${id}`, {
       method: 'DELETE',
       headers: getHeaders(true),
@@ -271,6 +400,12 @@ export const storyAPI = {
   },
 
   async toggleLike(id: string) {
+    // Mock in guest mode
+    if (isGuestMode()) {
+      console.log('Guest mode: Toggle like mocked', id);
+      return { liked: true, likes: 0 };
+    }
+    
     const response = await fetch(`${API_BASE}/stories/${id}/like`, {
       method: 'POST',
       headers: getHeaders(true),
@@ -288,6 +423,17 @@ export const storyAPI = {
 // Preferences API
 export const preferencesAPI = {
   async get() {
+    // Return mock data in guest mode
+    if (isGuestMode()) {
+      return {
+        preferences: {
+          notifications: true,
+          theme: 'dark',
+          hasCompletedOnboarding: localStorage.getItem('guestOnboardingComplete') === 'true'
+        }
+      };
+    }
+    
     const response = await fetch(`${API_BASE}/preferences`, {
       headers: getHeaders(true),
     });
@@ -301,6 +447,12 @@ export const preferencesAPI = {
   },
 
   async update(updates: any) {
+    // Mock update in guest mode  
+    if (isGuestMode()) {
+      console.log('Guest mode: Preferences update skipped', updates);
+      return { success: true };
+    }
+    
     const response = await fetch(`${API_BASE}/preferences`, {
       method: 'PUT',
       headers: getHeaders(true),

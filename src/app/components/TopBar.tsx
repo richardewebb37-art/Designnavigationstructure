@@ -1,6 +1,5 @@
 import { User, Bell } from 'lucide-react';
 import { useState } from 'react';
-import logoImage from 'figma:asset/7f4c2830fbeab039f2bfb2e66991fbd14cd52b08.png';
 import { useApp } from '../context/AppContext';
 
 interface TopBarProps {
@@ -23,12 +22,18 @@ export function TopBar({ onNotificationClick, onProfileClick, onLogoClick, onSet
       
       <div className="relative h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
-        <div onClick={onLogoClick} className="group cursor-pointer flex items-center overflow-hidden h-20">
-          <img
-            src={logoImage}
-            alt="The FictionVerse"
-            className="h-[450px] w-auto object-contain translate-y-[16px] -translate-x-[20px]"
-          />
+        <div onClick={onLogoClick} className="group cursor-pointer flex items-center">
+          <div className="flex items-center gap-2">
+            <div className="text-4xl">📚</div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
+                The Fictionverse
+              </h1>
+              <p className="text-[10px] sm:text-xs font-bold text-yellow-400 uppercase tracking-wide">
+                By AlterOne Studio
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Right Side Icons */}

@@ -9,14 +9,23 @@ export function Settings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
-  // Profile form
-  const [displayName, setDisplayName] = useState(currentUser.displayName);
-  const [bio, setBio] = useState(currentUser.bio);
-  const [avatar, setAvatar] = useState(currentUser.avatar);
+  // Guard against null currentUser - provide defaults
+  const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+  const [bio, setBio] = useState(currentUser?.bio || '');
+  const [avatar, setAvatar] = useState(currentUser?.avatar || '👤');
   
   // Preferences
   const [notifications, setNotifications] = useState(true);
   const [theme, setTheme] = useState('dark');
+  
+  // Update form when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setDisplayName(currentUser.displayName);
+      setBio(currentUser.bio);
+      setAvatar(currentUser.avatar);
+    }
+  }, [currentUser]);
   
   useEffect(() => {
     loadPreferences();
@@ -94,6 +103,13 @@ export function Settings() {
   };
   
   const handleClearDatabase = async () => {
+    // Check for guest mode first - prevent network request
+    const isGuestMode = localStorage.getItem('guest-mode') === 'true';
+    if (isGuestMode) {
+      setMessage({ type: 'error', text: 'Database clearing is not available in guest mode' });
+      return;
+    }
+    
     if (!confirm('⚠️ WARNING: This will delete ALL data from the database including all users, stories, and preferences. This action cannot be undone. Are you absolutely sure?')) return;
     
     // Double confirmation
@@ -338,8 +354,21 @@ export function Settings() {
         )}
 
         {/* Account Tab */}
-        {activeTab === 'account' && (
+        {activeTab === 'account' && currentUser && (
           <div className="space-y-6">
+            {/* Guest Mode Notice */}
+            {currentUser.id === 'guest-user' && (
+              <div className="p-4 bg-yellow-900/30 rounded-xl border-2 border-yellow-400">
+                <div className="flex items-center gap-3 mb-2">
+                  <Info className="w-6 h-6 text-yellow-400" />
+                  <h3 className="text-white font-bold">Guest Mode Active</h3>
+                </div>
+                <p className="text-slate-300 text-sm">
+                  You are currently browsing as a guest. Authentication is temporarily disabled. Full account features will be restored soon.
+                </p>
+              </div>
+            )}
+
             <div className="p-4 bg-blue-900/30 rounded-xl border-2 border-blue-400">
               <div className="flex items-center gap-3 mb-2">
                 <User className="w-6 h-6 text-blue-400" />
@@ -353,21 +382,24 @@ export function Settings() {
               </p>
             </div>
 
-            <div className="p-6 bg-red-900/20 rounded-xl border-2 border-red-600">
-              <div className="flex items-center gap-3 mb-4">
-                <LogOut className="w-6 h-6 text-red-400" />
-                <div>
-                  <h3 className="text-white font-bold">Sign Out</h3>
-                  <p className="text-slate-400 text-sm">Sign out from your account</p>
+            {/* Hide Sign Out in guest mode */}
+            {currentUser.id !== 'guest-user' && (
+              <div className="p-6 bg-red-900/20 rounded-xl border-2 border-red-600">
+                <div className="flex items-center gap-3 mb-4">
+                  <LogOut className="w-6 h-6 text-red-400" />
+                  <div>
+                    <h3 className="text-white font-bold">Sign Out</h3>
+                    <p className="text-slate-400 text-sm">Sign out from your account</p>
+                  </div>
                 </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-black border-2 border-red-400 transition-all"
+                >
+                  Sign Out
+                </button>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-black border-2 border-red-400 transition-all"
-              >
-                Sign Out
-              </button>
-            </div>
+            )}
 
             <div className="p-6 bg-red-900/20 rounded-xl border-2 border-red-600">
               <div className="flex items-center gap-3 mb-4">

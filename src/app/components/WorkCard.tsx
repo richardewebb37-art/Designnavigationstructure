@@ -1,6 +1,5 @@
 import { Heart, Eye } from 'lucide-react';
 import { Work } from '../data/mockData';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface WorkCardProps {
   work: Work;
@@ -8,11 +7,6 @@ interface WorkCardProps {
 }
 
 export function WorkCard({ work, onClick }: WorkCardProps) {
-  const getImageUrl = (searchTerms: string) => {
-    const hash = searchTerms.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return `https://images.unsplash.com/photo-${1500000000000 + (hash % 100000000)}?w=600&h=400&fit=crop`;
-  };
-
   return (
     <article
       onClick={onClick}
@@ -25,11 +19,11 @@ export function WorkCard({ work, onClick }: WorkCardProps) {
       <div className="relative bg-slate-800 rounded-xl overflow-hidden border-4 border-slate-700 group-hover:border-yellow-400 transition-colors">
         {/* Image with comic effect */}
         <div className="relative h-56 overflow-hidden">
-          <ImageWithFallback
-            src={getImageUrl(work.thumbnail)}
-            alt={work.title}
-            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 brightness-90 group-hover:brightness-100"
-          />
+          <div 
+            className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-slate-900 flex items-center justify-center"
+          >
+            <span className="text-6xl">{work.type === 'original' ? '⚡' : '★'}</span>
+          </div>
           {/* Comic book overlay effect */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
           <div className="absolute inset-0 mix-blend-multiply opacity-20" 

@@ -81,6 +81,11 @@ export function Auth({ onSuccess }: AuthProps) {
         errorMsg = 'Please check your email to confirm your account.';
       } else if (errorMsg.includes('already registered')) {
         errorMsg = 'This email is already registered. Please sign in instead.';
+        // Automatically switch to sign-in mode
+        setMode('signin');
+        // Clear the signup-only fields
+        setDisplayName('');
+        setUsername('');
       }
       
       setError(errorMsg);

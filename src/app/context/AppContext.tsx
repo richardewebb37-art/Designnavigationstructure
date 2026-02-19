@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { authAPI, preferencesAPI } from '../utils/api';
+import { logger, LogCategory } from '../utils/logger';
 
 export type Page = 'home' | 'discover' | 'nexus' | 'community' | 'events' | 'story' | 'profile' | 'search' | 'settings' | 'editor';
 
@@ -56,6 +57,12 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  // SET GUEST MODE IMMEDIATELY - Before any other initialization
+  if (typeof window !== 'undefined' && !localStorage.getItem('guest-mode')) {
+    localStorage.setItem('guest-mode', 'true');
+    logger.info(LogCategory.STORAGE, 'Guest mode enabled on first load');
+  }
+
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,10 +120,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Check authentication on mount
   useEffect(() => {
-    checkAuth();
+    logger.info(LogCategory.AUTH, 'Initializing authentication...');
+    // BYPASS AUTH - Skip authentication check and set up guest user
+    console.log('🎮 Running in guest mode - authentication bypassed');
+    logger.info(LogCategory.AUTH, 'Running in guest mode - authentication bypassed');
+    setupGuestMode();
   }, []);
 
+  const setupGuestMode = () => {
+    logger.info(LogCategory.AUTH, 'Setting up guest mode');
+    // Create a guest user profile
+    const guestUser: UserProfile = {
+      id: 'guest-user',
+      username: 'guest',
+      displayName: 'Guest User',
+      avatar: '👤',
+      bio: 'Welcome! You are browsing as a guest.',
+      joinDate: new Date().toISOString(),
+      worksPublished: 0,
+      totalLikes: 0,
+      followers: 0,
+      following: 0,
+    };
+
+    setIsAuthenticated(true);
+    setCurrentUser(guestUser);
+    
+    // Mark as guest mode in localStorage
+    localStorage.setItem('guest-mode', 'true');
+    logger.info(LogCategory.STORAGE, 'Guest mode flag set in localStorage');
+    
+    // Show onboarding for first visit
+    const hasSeenOnboarding = localStorage.getItem('guestOnboardingComplete');
+    if (!hasSeenOnboarding) {
+      logger.info(LogCategory.UI, 'First visit detected, showing onboarding');
+      setShowOnboarding(true);
+    } else {
+      logger.info(LogCategory.UI, 'Onboarding already completed, skipping');
+    }
+    
+    console.log('✅ Guest mode setup complete');
+    logger.info(LogCategory.AUTH, 'Guest mode setup complete');
+  };
+
   const checkAuth = async () => {
+    // This function is kept for potential future use but not called
     console.log('🔍 Checking authentication...');
     try {
       const session = await authAPI.getSession();
